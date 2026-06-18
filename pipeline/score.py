@@ -22,8 +22,10 @@ def score_jobs(df: pd.DataFrame) -> pd.DataFrame:
         desc     = str(row.get("description", "") or "").lower()
         combined = title + " " + desc
 
+        # Cap at a fixed number of hits so a richer keyword list doesn't dilute scores —
+        # hitting 8+ distinct skills already means strong overlap, regardless of list size.
         hits          = sum(1 for kw in profile_kw if kw in combined)
-        keyword_score = min(hits / max(len(profile_kw), 1), 1.0) * 50
+        keyword_score = min(hits / 8, 1.0) * 50
         score         = keyword_score
 
         if any(bt in title for bt in boost_titles):

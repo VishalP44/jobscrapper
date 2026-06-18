@@ -38,6 +38,7 @@ def filter_jobs(df: pd.DataFrame) -> pd.DataFrame:
     config = load_config()
     exclude_kw = [k.lower() for k in config["filters"]["exclude_keywords"]]
     require_kw  = [k.lower() for k in config["filters"]["require_any_keyword"]]
+    conditional_excl = [[t.lower() for t in group] for group in config["filters"].get("conditional_exclude_keywords", [])]
     min_inr     = config["filters"]["min_salary_inr"]
     min_gbp     = config["filters"]["min_salary_gbp"]
     my_exp      = config["filters"].get("my_experience_years")
@@ -91,6 +92,22 @@ def filter_jobs(df: pd.DataFrame) -> pd.DataFrame:
     mask_excl = df.apply(lambda r: any(kw in full_text(r) for kw in exclude_kw), axis=1)
     console.log(f"Excluded {mask_excl.sum()} rows by exclude_keywords")
     df = df[~mask_excl]
+
+    # 3b. Conditional exclude — drop only if ALL terms in a group appear together
+    if conditional_excl and not df.empty:
+        def conditional_ok(row):
+            text = full_text(row)
+            return not any(all(term in text for term in group) for group in conditional_excl)
+
+        mask_cond = df.apply(conditional_ok, axis=1)
+        console.log(f"Dropped {(~mask_cond).sum()} rows by conditional_exclude_keywords")
+        df = df[mask_cond]
+
+    # 3c. Require at least one relevant keyword (drops jobs with no skill overlap at all)
+    if require_kw and not df.empty:
+        mask_req = df.apply(lambda r: any(kw in full_text(r) for kw in require_kw), axis=1)
+        console.log(f"Dropped {(~mask_req).sum()} rows with no require_any_keyword match")
+        df = df[mask_req]
 
     # 4. Experience filter
     if my_exp is not None and not df.empty:
