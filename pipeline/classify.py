@@ -8,6 +8,11 @@ REGION_KEYWORDS = {
     "US": ["united states", "usa", "u.s.", "new york", "san francisco",
            "california", "texas", "chicago", "seattle", "boston", "austin",
            "remote - us", "nyc"],
+    "Europe": ["germany", "berlin", "munich", "netherlands", "amsterdam",
+               "france", "paris", "spain", "madrid", "ireland", "dublin",
+               "italy", "milan", "portugal", "lisbon", "sweden", "stockholm",
+               "denmark", "copenhagen", "belgium", "brussels", "switzerland",
+               "zurich", "europe", "eu)"],
 }
 
 

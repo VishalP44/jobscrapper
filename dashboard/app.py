@@ -10,8 +10,56 @@ from storage.db import init_db, get_jobs, update_applied, update_notes
 
 DB_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data", "jobs.db")
 
-st.set_page_config(page_title="Job Scraper", layout="wide")
-st.title("Job Scraper Dashboard")
+st.set_page_config(page_title="Job Scraper", layout="wide", page_icon="🎯")
+
+st.markdown("""
+<style>
+.stApp { background-color: #f4f6fb; }
+[data-testid="stMetric"] {
+    background: #ffffff;
+    border-radius: 12px;
+    padding: 14px 16px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+    border: 1px solid #ececf5;
+}
+[data-testid="stMetricValue"] { font-size: 1.6rem; }
+h1 { font-weight: 800; letter-spacing: -0.5px; }
+.stTabs [data-baseweb="tab-list"] { gap: 4px; }
+.stTabs [data-baseweb="tab"] {
+    background: #ffffff;
+    border-radius: 8px 8px 0 0;
+    padding: 8px 16px;
+    border: 1px solid #ececf5;
+}
+.stTabs [aria-selected="true"] {
+    background: #1e293b !important;
+    color: white !important;
+}
+.job-card {
+    background: #ffffff;
+    border-radius: 14px;
+    padding: 16px 18px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+    border: 1px solid #ececf5;
+    margin-bottom: 14px;
+    height: 100%;
+}
+.job-card-title { font-weight: 700; font-size: 1.02rem; margin-bottom: 2px; }
+.job-card-company { color: #555; font-size: 0.9rem; margin-bottom: 8px; }
+.pill {
+    display: inline-block;
+    padding: 2px 10px;
+    border-radius: 999px;
+    color: white;
+    font-size: 0.72rem;
+    font-weight: 700;
+    margin-right: 6px;
+}
+</style>
+""", unsafe_allow_html=True)
+
+st.title("🎯 Job Scraper Dashboard")
+st.caption("Your personal job radar — scraped, scored, and sorted so you don't have to dig.")
 
 db = init_db(DB_PATH)
 df = get_jobs(db)
@@ -27,9 +75,10 @@ TARGET_COLORS = {
     "tech":     "#0277bd",
     "retail":   "#ef6c00",
     "startups": "#c2185b",
+    "fintech":  "#00897b",
 }
 REGION_FLAGS = {
-    "India": "🇮🇳", "UK": "🇬🇧", "US": "🇺🇸", "Remote": "🌐", "Other": "🗺️",
+    "India": "🇮🇳", "UK": "🇬🇧", "US": "🇺🇸", "Europe": "🇪🇺", "Remote": "🌐", "Other": "🗺️",
 }
 
 def style_table(view: pd.DataFrame):
@@ -59,6 +108,8 @@ selected_sources = st.sidebar.multiselect("Source", options=all_sources, default
 
 applied_filter = st.sidebar.radio("Applied status", ["All", "Not applied", "Applied"], index=1)
 
+search_query = st.sidebar.text_input("🔎 Search title or company", value="")
+
 if st.sidebar.button("Run pipeline now"):
     with st.spinner("Running pipeline..."):
         result = subprocess.run(
@@ -84,6 +135,12 @@ if not base.empty:
         base = base[base["applied"] == 0]
     elif applied_filter == "Applied":
         base = base[base["applied"] == 1]
+if search_query and not base.empty:
+    q = search_query.lower()
+    base = base[
+        base["title"].str.lower().str.contains(q, na=False)
+        | base["company"].str.lower().str.contains(q, na=False)
+    ]
 base = base.reset_index(drop=True)
 
 # --- Top metrics ---
@@ -106,6 +163,34 @@ if not df.empty:
 
 st.divider()
 
+# --- Top Matches: card view of the best current matches ---
+if not base.empty:
+    st.subheader("🔥 Top Matches")
+    top_n = base.sort_values("relevance_score", ascending=False).head(6).reset_index(drop=True)
+    card_cols = st.columns(3)
+    for i, row in top_n.iterrows():
+        with card_cols[i % 3]:
+            tier_color = TIER_COLORS.get(row.get("tier"), "#616161")
+            cat = row.get("target_category") or ""
+            cat_color = TARGET_COLORS.get(cat, "#9e9e9e")
+            region = row.get("region") or ""
+            flag = REGION_FLAGS.get(region, "")
+            pills = f'<span class="pill" style="background:{tier_color}">{row.get("tier","")}</span>'
+            if cat:
+                pills += f'<span class="pill" style="background:{cat_color}">{cat.title()}</span>'
+            st.markdown(f"""
+            <div class="job-card">
+                <div class="job-card-title">{row.get('title','')}</div>
+                <div class="job-card-company">{row.get('company','')} &nbsp;·&nbsp; {flag} {row.get('location','')}</div>
+                {pills}
+                <div style="margin-top:8px; font-size:0.85rem; color:#444;">Score: <b>{row.get('relevance_score',0):.0f}</b> &nbsp;|&nbsp; Posted: {str(row.get('date_posted',''))[:10]}</div>
+            </div>
+            """, unsafe_allow_html=True)
+            job_url = row.get("job_url") or ""
+            if job_url:
+                st.link_button("Open ↗", job_url, key=f"open_top_{i}", use_container_width=True)
+    st.divider()
+
 display_cols = ["tier", "relevance_score", "title", "company", "target_category",
                  "location", "region", "date_posted", "source", "applied"]
 
@@ -125,7 +210,7 @@ def render_job_table(view: pd.DataFrame, key_prefix: str):
     return view, event.selection.rows
 
 # --- Tabs: All / regions / target companies ---
-regions_present = [r for r in ["India", "UK", "US", "Remote", "Other"] if not base.empty and r in base["region"].unique()]
+regions_present = [r for r in ["India", "UK", "US", "Europe", "Remote", "Other"] if not base.empty and r in base["region"].unique()]
 tab_labels = ["All"] + [f"{REGION_FLAGS.get(r, '')} {r}" for r in regions_present] + ["⭐ Target Companies"]
 tabs = st.tabs(tab_labels)
 
@@ -148,13 +233,14 @@ for i, region in enumerate(regions_present, start=1):
 with tabs[-1]:
     target_df = base[base["target_category"] != ""] if not base.empty else base
     st.subheader(f"Target companies ({len(target_df)} shown)")
-    st.caption("Finance, tech, and retail companies you're prioritizing — edit the list in config.yaml under `target_companies`.")
+    st.caption("Finance, tech, retail, startup, and European fintech companies you're prioritizing — edit the list in config.yaml under `target_companies`.")
     if not target_df.empty:
-        cat_col1, cat_col2, cat_col3, cat_col4 = st.columns(4)
+        cat_col1, cat_col2, cat_col3, cat_col4, cat_col5 = st.columns(5)
         cat_col1.metric("Finance", len(target_df[target_df["target_category"] == "finance"]))
         cat_col2.metric("Tech", len(target_df[target_df["target_category"] == "tech"]))
         cat_col3.metric("Retail", len(target_df[target_df["target_category"] == "retail"]))
         cat_col4.metric("Startups", len(target_df[target_df["target_category"] == "startups"]))
+        cat_col5.metric("Fintech (EU)", len(target_df[target_df["target_category"] == "fintech"]))
     result = render_job_table(target_df, "targets")
     if result and result[1]:
         selection = result
