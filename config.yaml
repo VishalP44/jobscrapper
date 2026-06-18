@@ -92,5 +92,33 @@ scoring:
     - "Fresher"
     - "Intern"
 
+target_companies:
+  finance:
+    - "Deloitte"
+    - "JPMorgan"
+    - "JP Morgan"
+    - "UBS"
+    - "BlackRock"
+    - "American Express"
+    - "Goldman Sachs"
+    - "Morgan Stanley"
+    - "Citi"
+    - "Barclays"
+    - "HSBC"
+  tech:
+    - "Anthropic"
+    - "OpenAI"
+    - "Google"
+    - "Microsoft"
+    - "Meta"
+    - "Apple"
+    - "Amazon Web Services"
+  retail:
+    - "Amazon"
+    - "Target"
+    - "Walmart"
+    - "Costco"
+    - "Home Depot"
+
 schedule:
   run_every_hours: 6

@@ -1,6 +1,7 @@
 import yaml
 import pandas as pd
 from datetime import datetime, timezone
+from pipeline.classify import add_classifications
 
 def load_config():
     with open("config.yaml") as f:
@@ -60,4 +61,5 @@ def score_jobs(df: pd.DataFrame) -> pd.DataFrame:
     df = df.copy()
     df["relevance_score"] = df.apply(compute_score, axis=1)
     df["tier"]            = df["relevance_score"].apply(assign_tier)
+    df = add_classifications(df, config)
     return df

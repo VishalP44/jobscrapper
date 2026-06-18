@@ -19,6 +19,8 @@ SCHEMA = {
     "tier": str,
     "ai_score": float,
     "ai_reason": str,
+    "region": str,
+    "target_category": str,
     "applied": int,
     "notes": str,
     "scraped_at": str,
@@ -36,6 +38,10 @@ def init_db(db_path: str) -> sqlite_utils.Database:
             db["jobs"].add_column("ai_score", float)
         if "ai_reason" not in existing:
             db["jobs"].add_column("ai_reason", str)
+        if "region" not in existing:
+            db["jobs"].add_column("region", str)
+        if "target_category" not in existing:
+            db["jobs"].add_column("target_category", str)
     return db
 
 def insert_jobs(db: sqlite_utils.Database, df: pd.DataFrame) -> int:
@@ -81,7 +87,7 @@ def get_jobs(db: sqlite_utils.Database, tier: str = None, applied: int = None) -
         params.append(applied)
 
     where = " AND ".join(where_clauses) if where_clauses else None
-    rows = list(db["jobs"].rows_where(where, params, order_by="relevance_score desc"))
+    rows = list(db["jobs"].rows_where(where, params, order_by="date_posted desc, relevance_score desc"))
     return pd.DataFrame(rows) if rows else pd.DataFrame(columns=list(SCHEMA.keys()))
 
 def update_applied(db: sqlite_utils.Database, job_url: str, applied_flag: int):

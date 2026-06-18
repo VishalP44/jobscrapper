@@ -16,6 +16,37 @@ st.title("Job Scraper Dashboard")
 db = init_db(DB_PATH)
 df = get_jobs(db)
 
+TIER_COLORS = {
+    "Tier 1 — Apply today":     "#1e7d32",
+    "Tier 2 — Apply this week": "#b8860b",
+    "Tier 3 — Monitor":         "#1565c0",
+    "Skip":                     "#616161",
+}
+TARGET_COLORS = {
+    "finance": "#6a1b9a",
+    "tech":    "#0277bd",
+    "retail":  "#ef6c00",
+}
+REGION_FLAGS = {
+    "India": "🇮🇳", "UK": "🇬🇧", "US": "🇺🇸", "Remote": "🌐", "Other": "🗺️",
+}
+
+def style_table(view: pd.DataFrame):
+    def tier_style(val):
+        color = TIER_COLORS.get(val)
+        return f"background-color: {color}; color: white;" if color else ""
+
+    def target_style(val):
+        color = TARGET_COLORS.get(val)
+        return f"background-color: {color}; color: white; font-weight: bold;" if color else ""
+
+    styler = view.style
+    if "tier" in view.columns:
+        styler = styler.applymap(tier_style, subset=["tier"])
+    if "target_category" in view.columns:
+        styler = styler.applymap(target_style, subset=["target_category"])
+    return styler
+
 # --- Sidebar ---
 st.sidebar.header("Filters")
 
@@ -41,67 +72,110 @@ if st.sidebar.button("Run pipeline now"):
             st.sidebar.error(result.stderr[-1000:])
     st.rerun()
 
-# --- Filter dataframe ---
-view = df.copy()
-
-if selected_tiers and not view.empty:
-    view = view[view["tier"].isin(selected_tiers)]
-
-if selected_sources and not view.empty:
-    view = view[view["source"].isin(selected_sources)]
-
-if not view.empty:
+# --- Apply shared filters ---
+base = df.copy()
+if selected_tiers and not base.empty:
+    base = base[base["tier"].isin(selected_tiers)]
+if selected_sources and not base.empty:
+    base = base[base["source"].isin(selected_sources)]
+if not base.empty:
     if applied_filter == "Not applied":
-        view = view[view["applied"] == 0]
+        base = base[base["applied"] == 0]
     elif applied_filter == "Applied":
-        view = view[view["applied"] == 1]
+        base = base[base["applied"] == 1]
+base = base.reset_index(drop=True)
 
-view = view.reset_index(drop=True)
-
-# --- Metrics ---
-col1, col2, col3, col4 = st.columns(4)
+# --- Top metrics ---
+col1, col2, col3, col4, col5 = st.columns(5)
 col1.metric("Total jobs (DB)", len(df))
 col2.metric("Tier 1", len(df[df["tier"] == "Tier 1 — Apply today"]) if not df.empty else 0)
 col3.metric("Tier 2", len(df[df["tier"] == "Tier 2 — Apply this week"]) if not df.empty else 0)
-col4.metric("Applied", int(df["applied"].sum()) if not df.empty else 0)
+col4.metric("Target companies", len(df[df["target_category"] != ""]) if not df.empty else 0)
+col5.metric("Applied", int(df["applied"].sum()) if not df.empty else 0)
 
-# --- Jobs table ---
-st.subheader(f"Jobs ({len(view)} shown)")
-st.caption("Click a row to see full details below.")
-
-display_cols = ["tier", "relevance_score", "title", "company", "location",
-                "date_posted", "source", "applied"]
-display_cols = [c for c in display_cols if c in view.columns]
-
-if view.empty:
-    st.info("No jobs match the current filters.")
-    st.stop()
-
-event = st.dataframe(
-    view[display_cols],
-    use_container_width=True,
-    on_select="rerun",
-    selection_mode="single-row",
-)
-
-selected_rows = event.selection.rows
-
-# --- Job detail panel ---
-if not selected_rows:
-    st.info("Click a row above to view the full job details.")
-    st.stop()
-
-sel_idx = selected_rows[0]
-sel_row = view.iloc[sel_idx]
-job_url = sel_row.get("job_url", "")
+# --- Charts ---
+if not df.empty:
+    chart_col1, chart_col2 = st.columns(2)
+    with chart_col1:
+        st.caption("Jobs by tier")
+        st.bar_chart(df["tier"].value_counts())
+    with chart_col2:
+        st.caption("Jobs by region")
+        st.bar_chart(df["region"].value_counts())
 
 st.divider()
+
+display_cols = ["tier", "relevance_score", "title", "company", "target_category",
+                 "location", "region", "date_posted", "source", "applied"]
+
+def render_job_table(view: pd.DataFrame, key_prefix: str):
+    view = view.reset_index(drop=True)
+    cols = [c for c in display_cols if c in view.columns]
+    if view.empty:
+        st.info("No jobs match the current filters.")
+        return None
+    event = st.dataframe(
+        style_table(view[cols]),
+        use_container_width=True,
+        on_select="rerun",
+        selection_mode="single-row",
+        key=f"table_{key_prefix}",
+    )
+    return view, event.selection.rows
+
+# --- Tabs: All / regions / target companies ---
+regions_present = [r for r in ["India", "UK", "US", "Remote", "Other"] if not base.empty and r in base["region"].unique()]
+tab_labels = ["All"] + [f"{REGION_FLAGS.get(r, '')} {r}" for r in regions_present] + ["⭐ Target Companies"]
+tabs = st.tabs(tab_labels)
+
+selection = None
+
+with tabs[0]:
+    st.subheader(f"All jobs ({len(base)} shown)")
+    result = render_job_table(base, "all")
+    if result and result[1]:
+        selection = result
+
+for i, region in enumerate(regions_present, start=1):
+    with tabs[i]:
+        region_df = base[base["region"] == region]
+        st.subheader(f"{region} jobs ({len(region_df)} shown)")
+        result = render_job_table(region_df, f"region_{region}")
+        if result and result[1]:
+            selection = result
+
+with tabs[-1]:
+    target_df = base[base["target_category"] != ""] if not base.empty else base
+    st.subheader(f"Target companies ({len(target_df)} shown)")
+    st.caption("Finance, tech, and retail companies you're prioritizing — edit the list in config.yaml under `target_companies`.")
+    if not target_df.empty:
+        cat_col1, cat_col2, cat_col3 = st.columns(3)
+        cat_col1.metric("Finance", len(target_df[target_df["target_category"] == "finance"]))
+        cat_col2.metric("Tech", len(target_df[target_df["target_category"] == "tech"]))
+        cat_col3.metric("Retail", len(target_df[target_df["target_category"] == "retail"]))
+    result = render_job_table(target_df, "targets")
+    if result and result[1]:
+        selection = result
+
+# --- Job detail panel ---
+st.divider()
+if selection is None or not selection[1]:
+    st.info("Click a row in any tab above to view full job details.")
+    st.stop()
+
+sel_view, sel_rows = selection
+sel_idx = sel_rows[0]
+sel_row = sel_view.iloc[sel_idx]
+job_url = sel_row.get("job_url", "")
+
 st.subheader(f"{sel_row.get('title', 'Job Detail')} — {sel_row.get('company', '')}")
 
-c1, c2, c3 = st.columns(3)
+c1, c2, c3, c4 = st.columns(4)
 c1.markdown(f"**Location:** {sel_row.get('location', '—')}")
 c2.markdown(f"**Score:** {sel_row.get('relevance_score', 0):.1f} | **{sel_row.get('tier', '')}**")
 c3.markdown(f"**Posted:** {sel_row.get('date_posted', '—')}")
+target_cat = sel_row.get("target_category") or ""
+c4.markdown(f"**Target list:** {target_cat.title() if target_cat else '—'}")
 
 sal_min = sel_row.get("salary_min")
 sal_max = sel_row.get("salary_max")
