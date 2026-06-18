@@ -106,6 +106,13 @@ selected_tiers = st.sidebar.multiselect("Tier", options=all_tiers, default=["Tie
 all_sources = sorted(df["source"].dropna().unique().tolist()) if not df.empty else []
 selected_sources = st.sidebar.multiselect("Source", options=all_sources, default=all_sources)
 
+all_countries = sorted(df["region"].dropna().unique().tolist()) if not df.empty else []
+selected_countries = st.sidebar.multiselect("Country / Region", options=all_countries, default=all_countries)
+
+ROLE_OPTIONS = ["Data Analyst", "Analytics Engineer", "Business Intelligence",
+                 "Business Analyst", "Product Analyst", "BI Engineer", "Reporting Analyst"]
+selected_roles = st.sidebar.multiselect("Role", options=ROLE_OPTIONS, default=[])
+
 applied_filter = st.sidebar.radio("Applied status", ["All", "Not applied", "Applied"], index=1)
 
 search_query = st.sidebar.text_input("🔎 Search title or company", value="")
@@ -130,6 +137,11 @@ if selected_tiers and not base.empty:
     base = base[base["tier"].isin(selected_tiers)]
 if selected_sources and not base.empty:
     base = base[base["source"].isin(selected_sources)]
+if selected_countries and not base.empty:
+    base = base[base["region"].isin(selected_countries)]
+if selected_roles and not base.empty:
+    roles_lower = [r.lower() for r in selected_roles]
+    base = base[base["title"].str.lower().apply(lambda t: any(r in t for r in roles_lower))]
 if not base.empty:
     if applied_filter == "Not applied":
         base = base[base["applied"] == 0]

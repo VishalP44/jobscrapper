@@ -169,8 +169,6 @@ scoring:
     - "Business Analyst"
     - "Data Insights"
     - "Reporting Analyst"
-    - "Data Scientist"
-    - "Data Science Analyst"
     - "Statistical Analyst"
     - "Statistician"
   penalise_titles:
