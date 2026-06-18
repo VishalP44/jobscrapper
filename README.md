@@ -32,6 +32,8 @@ Default interval is every 12 hours (set in `config.yaml`).
 streamlit run dashboard/app.py
 ```
 
+Each pipeline run flags newly inserted jobs (`is_new`), surfaced in the dashboard via a "🆕 New since last run" filter, metric tile, and card/table indicators — so you can see at a glance what showed up since the last scrape.
+
 ## Notes on LinkedIn
 
 `python-jobspy` attempts LinkedIn scraping but it rate-limits aggressively. Indeed and Glassdoor are more reliable. For India roles, Indeed IN is the most consistent source. For UK runs, change `country: GB` in `config.yaml`.

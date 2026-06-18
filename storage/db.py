@@ -24,6 +24,7 @@ SCHEMA = {
     "applied": int,
     "notes": str,
     "scraped_at": str,
+    "is_new": int,
 }
 
 def init_db(db_path: str) -> sqlite_utils.Database:
@@ -42,6 +43,8 @@ def init_db(db_path: str) -> sqlite_utils.Database:
             db["jobs"].add_column("region", str)
         if "target_category" not in existing:
             db["jobs"].add_column("target_category", str)
+        if "is_new" not in existing:
+            db["jobs"].add_column("is_new", int, not_null_default=0)
     return db
 
 def insert_jobs(db: sqlite_utils.Database, df: pd.DataFrame) -> int:
@@ -65,11 +68,16 @@ def insert_jobs(db: sqlite_utils.Database, df: pd.DataFrame) -> int:
             record["applied"] = 0
         if not record.get("notes"):
             record["notes"] = ""
+        record["is_new"] = 1
         # Generate id from job_url if missing
         if not record.get("id") and record.get("job_url"):
             import hashlib
             record["id"] = hashlib.md5(record["job_url"].encode()).hexdigest()
         records.append(record)
+
+    # Clear the "new" flag from the previous run's batch before inserting this one,
+    # so only the most recent run's jobs are ever flagged as new.
+    db.execute("UPDATE jobs SET is_new = 0 WHERE is_new = 1")
 
     before = db["jobs"].count
     db["jobs"].insert_all(records, ignore=True)

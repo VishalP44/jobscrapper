@@ -115,6 +115,8 @@ selected_roles = st.sidebar.multiselect("Role", options=ROLE_OPTIONS, default=[]
 
 applied_filter = st.sidebar.radio("Applied status", ["All", "Not applied", "Applied"], index=1)
 
+new_only = st.sidebar.checkbox("🆕 New since last run only", value=False)
+
 search_query = st.sidebar.text_input("🔎 Search title or company", value="")
 
 if st.sidebar.button("Run pipeline now"):
@@ -153,15 +155,18 @@ if search_query and not base.empty:
         base["title"].str.lower().str.contains(q, na=False)
         | base["company"].str.lower().str.contains(q, na=False)
     ]
+if new_only and not base.empty:
+    base = base[base["is_new"] == 1]
 base = base.reset_index(drop=True)
 
 # --- Top metrics ---
-col1, col2, col3, col4, col5 = st.columns(5)
+col1, col2, col3, col4, col5, col6 = st.columns(6)
 col1.metric("Total jobs (DB)", len(df))
 col2.metric("Tier 1", len(df[df["tier"] == "Tier 1 — Apply today"]) if not df.empty else 0)
 col3.metric("Tier 2", len(df[df["tier"] == "Tier 2 — Apply this week"]) if not df.empty else 0)
 col4.metric("Target companies", len(df[df["target_category"] != ""]) if not df.empty else 0)
 col5.metric("Applied", int(df["applied"].sum()) if not df.empty else 0)
+col6.metric("🆕 New since last run", int(df["is_new"].sum()) if not df.empty else 0)
 
 # --- Charts ---
 if not df.empty:
@@ -190,6 +195,8 @@ if not base.empty:
             pills = f'<span class="pill" style="background:{tier_color}">{row.get("tier","")}</span>'
             if cat:
                 pills += f'<span class="pill" style="background:{cat_color}">{cat.title()}</span>'
+            if row.get("is_new") == 1:
+                pills += '<span class="pill" style="background:#e53935">🆕 New</span>'
             st.markdown(f"""
             <div class="job-card">
                 <div class="job-card-title">{row.get('title','')}</div>
@@ -203,11 +210,13 @@ if not base.empty:
                 st.link_button("Open ↗", job_url, key=f"open_top_{i}", use_container_width=True)
     st.divider()
 
-display_cols = ["tier", "relevance_score", "title", "company", "target_category",
+display_cols = ["is_new", "tier", "relevance_score", "title", "company", "target_category",
                  "location", "region", "date_posted", "source", "applied"]
 
 def render_job_table(view: pd.DataFrame, key_prefix: str):
     view = view.reset_index(drop=True)
+    if "is_new" in view.columns:
+        view = view.assign(is_new=view["is_new"].apply(lambda v: "🆕" if v == 1 else ""))
     cols = [c for c in display_cols if c in view.columns]
     if view.empty:
         st.info("No jobs match the current filters.")
