@@ -1,0 +1,17 @@
+__pycache__/
+*.pyc
+.DS_Store
+.venv/
+venv/
+
+# data & secrets
+data/jobs.db
+data/google_cookies.json
+
+# debug artifacts
+debug_*.png
+debug_*.html
+debug_selectors.py
+
+# local claude settings
+.claude/settings.local.json

@@ -1,0 +1,96 @@
+search:
+  queries:
+    - "Data Analyst"
+    - "Analytics Engineer"
+    - "BI Analyst"
+    - "Product Analyst"
+    - "Business Intelligence Analyst"
+  locations:
+    - "Mumbai, India"
+    - "Bangalore, India"
+    - "London, UK"
+    - "Remote"
+  results_per_query: 20
+  days_old_max: 7
+
+sources:
+  jobspy:
+    sites: [indeed, linkedin]
+    country: india   # used by Indeed; keep as 'india' even when searching UK (jobspy quirk)
+
+location_filter:
+  allowed_regions:
+    - "india"
+    - "mumbai"
+    - "bangalore"
+    - "bengaluru"
+    - "hyderabad"
+    - "delhi"
+    - "pune"
+    - "chennai"
+    - "united kingdom"
+    - "uk"
+    - "england"
+    - "london"
+    - "manchester"
+    - "edinburgh"
+    - "birmingham"
+  keep_remote: true           # keep remote listings regardless of stated location
+  uk_sponsorship_required: false  # set true to only keep UK jobs that mention visa sponsorship
+
+filters:
+  my_experience_years: 3    # your years of experience — jobs requiring more than this +1 buffer are dropped
+  exclude_keywords:
+    - "10+ years"
+    - "12+ years"
+    - "Director"
+    - "VP"
+    - "BPO"
+    - "Data Entry"
+    - "Fresher only"
+  require_any_keyword:
+    - "SQL"
+    - "Power BI"
+    - "Tableau"
+    - "Snowflake"
+    - "dbt"
+    - "Python"
+    - "BigQuery"
+    - "Looker"
+    - "Analytics"
+  min_salary_inr: 1200000
+  min_salary_gbp: 40000
+
+scoring:
+  profile_keywords:
+    - "SQL"
+    - "Power BI"
+    - "Tableau"
+    - "Snowflake"
+    - "dbt"
+    - "Python"
+    - "BigQuery"
+    - "Databricks"
+    - "Azure"
+    - "GCP"
+    - "analytics"
+    - "dashboard"
+    - "ELT"
+    - "ETL"
+    - "Looker"
+    - "data pipeline"
+    - "reporting"
+  boost_titles:
+    - "Analytics Engineer"
+    - "Senior Data Analyst"
+    - "BI Engineer"
+    - "Data Analyst"
+    - "Business Intelligence"
+  penalise_titles:
+    - "Data Entry"
+    - "BPO"
+    - "Fresher"
+    - "Intern"
+
+schedule:
+  run_every_hours: 6

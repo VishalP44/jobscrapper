@@ -1,0 +1,7 @@
+python-jobspy
+pandas
+pyyaml
+streamlit
+schedule
+sqlite-utils
+rich
