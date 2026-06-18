@@ -6,17 +6,24 @@ search:
     - "Product Analyst"
     - "Business Intelligence Analyst"
   locations:
-    - "Mumbai, India"
-    - "Bangalore, India"
-    - "London, UK"
-    - "Remote"
+    - location: "Mumbai, India"
+      country: "india"
+    - location: "Bangalore, India"
+      country: "india"
+    - location: "London, UK"
+      country: "uk"
+    - location: "New York, USA"
+      country: "usa"
+    - location: "San Francisco, USA"
+      country: "usa"
+    - location: "Remote"
+      country: "usa"
   results_per_query: 20
   days_old_max: 7
 
 sources:
   jobspy:
     sites: [indeed, linkedin]
-    country: india   # used by Indeed; keep as 'india' even when searching UK (jobspy quirk)
 
 location_filter:
   allowed_regions:
@@ -35,6 +42,15 @@ location_filter:
     - "manchester"
     - "edinburgh"
     - "birmingham"
+    - "united states"
+    - "usa"
+    - "new york"
+    - "san francisco"
+    - "california"
+    - "seattle"
+    - "boston"
+    - "austin"
+    - "chicago"
   keep_remote: true           # keep remote listings regardless of stated location
   uk_sponsorship_required: false  # set true to only keep UK jobs that mention visa sponsorship
 
@@ -107,7 +123,6 @@ target_companies:
     - "HSBC"
   tech:
     - "Anthropic"
-    - "OpenAI"
     - "Google"
     - "Microsoft"
     - "Meta"
@@ -119,6 +134,38 @@ target_companies:
     - "Walmart"
     - "Costco"
     - "Home Depot"
+  startups:
+    - "OpenAI"
+    - "DeepMind"
+    - "Cursor"
+    - "Lovable"
+    - "Bolt"
+    - "Monzo"
+
+ats_boards:
+  # Direct-from-source job boards (no auth, public APIs). Verified board tokens —
+  # only companies confirmed to have a real, non-empty board are listed here.
+  - company: "Anthropic"
+    platform: "greenhouse"
+    token: "anthropic"
+  - company: "DeepMind"
+    platform: "greenhouse"
+    token: "deepmind"
+  - company: "Monzo"
+    platform: "greenhouse"
+    token: "monzo"
+  - company: "Bolt"
+    platform: "greenhouse"
+    token: "stackblitz"   # Bolt.new is built by StackBlitz
+  - company: "OpenAI"
+    platform: "ashby"
+    token: "openai"
+  - company: "Cursor"
+    platform: "ashby"
+    token: "cursor"
+  - company: "Lovable"
+    platform: "ashby"
+    token: "lovable"
 
 schedule:
   run_every_hours: 6

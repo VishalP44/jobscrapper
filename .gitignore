@@ -14,4 +14,4 @@ debug_*.html
 debug_selectors.py
 
 # local claude settings
-.claude/settings.local.json
+.claude/

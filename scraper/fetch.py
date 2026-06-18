@@ -18,15 +18,16 @@ def fetch_jobs() -> pd.DataFrame:
     queries   = config["search"]["queries"]
     locations = config["search"]["locations"]
     sites     = config["sources"]["jobspy"]["sites"]
-    country   = config["sources"]["jobspy"]["country"]
     results_n = config["search"]["results_per_query"]
     days_old  = config["search"]["days_old_max"]
 
     all_frames = []
 
     for query in queries:
-        for location in locations:
-            console.log(f"Scraping: [cyan]{query}[/cyan] in [cyan]{location}[/cyan] via {sites}")
+        for loc_entry in locations:
+            location = loc_entry["location"]
+            country  = loc_entry["country"]
+            console.log(f"Scraping: [cyan]{query}[/cyan] in [cyan]{location}[/cyan] ({country}) via {sites}")
             for site in sites:
                 try:
                     df = scrape_jobs(

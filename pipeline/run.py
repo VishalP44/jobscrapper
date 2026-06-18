@@ -10,7 +10,10 @@ from rich.table import Table
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+import pandas as pd
+
 from scraper.fetch import fetch_jobs
+from scraper.ats import fetch_ats_jobs
 from scraper.dedupe import dedupe
 from pipeline.filter import filter_jobs
 from pipeline.score import score_jobs
@@ -30,6 +33,12 @@ def run_pipeline():
 
     console.log("Fetching jobs...")
     raw_df = fetch_jobs()
+
+    console.log("Fetching direct-from-source ATS boards...")
+    ats_df = fetch_ats_jobs()
+    if not ats_df.empty:
+        raw_df = pd.concat([raw_df, ats_df], ignore_index=True).drop_duplicates(subset=["id"]).reset_index(drop=True)
+
     total_scraped = len(raw_df)
     console.log(f"Total scraped: {total_scraped}")
 

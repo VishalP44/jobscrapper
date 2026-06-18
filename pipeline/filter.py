@@ -55,9 +55,12 @@ def filter_jobs(df: pd.DataFrame) -> pd.DataFrame:
             str(row.get("description", "") or ""),
         ])).lower()
 
-    # 1. Location filter
+    # 1. Location filter (direct-from-source ATS jobs are curated target companies — exempt from this filter)
+    ats_sources = {"greenhouse", "lever", "ashby"}
     if allowed_regions:
         def location_ok(row):
+            if str(row.get("source") or "").lower() in ats_sources:
+                return True
             loc = str(row.get("location") or "").lower()
             is_remote = row.get("is_remote") == 1 or "remote" in loc
             if is_remote and keep_remote:

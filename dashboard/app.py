@@ -23,9 +23,10 @@ TIER_COLORS = {
     "Skip":                     "#616161",
 }
 TARGET_COLORS = {
-    "finance": "#6a1b9a",
-    "tech":    "#0277bd",
-    "retail":  "#ef6c00",
+    "finance":  "#6a1b9a",
+    "tech":     "#0277bd",
+    "retail":   "#ef6c00",
+    "startups": "#c2185b",
 }
 REGION_FLAGS = {
     "India": "🇮🇳", "UK": "🇬🇧", "US": "🇺🇸", "Remote": "🌐", "Other": "🗺️",
@@ -149,10 +150,11 @@ with tabs[-1]:
     st.subheader(f"Target companies ({len(target_df)} shown)")
     st.caption("Finance, tech, and retail companies you're prioritizing — edit the list in config.yaml under `target_companies`.")
     if not target_df.empty:
-        cat_col1, cat_col2, cat_col3 = st.columns(3)
+        cat_col1, cat_col2, cat_col3, cat_col4 = st.columns(4)
         cat_col1.metric("Finance", len(target_df[target_df["target_category"] == "finance"]))
         cat_col2.metric("Tech", len(target_df[target_df["target_category"] == "tech"]))
         cat_col3.metric("Retail", len(target_df[target_df["target_category"] == "retail"]))
+        cat_col4.metric("Startups", len(target_df[target_df["target_category"] == "startups"]))
     result = render_job_table(target_df, "targets")
     if result and result[1]:
         selection = result
